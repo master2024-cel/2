@@ -1,45 +1,60 @@
-master2024-cel
-med
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LogisticRegression
+import streamlit as st
+import random  # لإختيار نص الحكم بشكل عشوائي
 
-Type / to search
-Code
-Issues
-Pull requests
-Actions
-Projects
-Security
-Insights
-Settings
-Owner avatar
-med
-Private
-Set up GitHub Copilot
-Use GitHub's AI pair programmer to autocomplete suggestions as you code.
+# تحميل البيانات
+df = pd.read_csv("jugements_maroc.csv")
 
-Add collaborators to this repository
-Search for people using their GitHub username or email address.
+# معالجة نصوص الوقائع + نوع القضية
+df["input_text"] = df["type_cause"] + " " + df["faits"]
 
-Quick setup — if you’ve done this kind of thing before
-or	
-https://github.com/master2024-cel/med.git
-Get started by creating a new file or uploading an existing file. We recommend every repository include a README, LICENSE, and .gitignore.
+# تحويل الحكم إلى أرقام
+le = LabelEncoder()
+y = le.fit_transform(df["jugement"])
 
-…or create a new repository on the command line
-echo "# med" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/master2024-cel/med.git
-git push -u origin main
-…or push an existing repository from the command line
-git remote add origin https://github.com/master2024-cel/med.git
-git branch -M main
-git push -u origin main
- ProTip! Use the URL for this page when adding GitHub as a remote.
-Footer
-© 2025 GitHub, Inc.
-Footer navigation
-Terms
-Privacy
-Secu
+# بناء النموذج
+pipeline = make_pipeline(
+    TfidfVectorizer(),
+    LogisticRegression()
+)
+pipeline.fit(df["input_text"], y)
+
+# واجهة المستخدم
+st.title("🔮 تطبيق توقع منطوق الأحكام القضائية المغربية (بسيط)")
+st.write("أدخل نوع القضية والوقائع ثم اضغط على 'توقع الحكم'")
+
+# اختيار نوع القضية
+type_cause = st.selectbox("📂 نوع القضية", ["كراء", "طلاق", "عقار", "جنائي"])
+
+# إدخال الوقائع
+faits_input = st.text_area("✍️ وقائع القضية")
+
+# لائحة صيغ منطوق الأحكام (نماذج جاهزة)
+motifs = [
+    "لهذه الأسباب حكمت المحكمة علنًا ابتدائيًا بقبول الدعوى شكلاً ورفضها موضوعًا.",
+    "حكمت المحكمة بعدم قبول الطلب لعدم إثبات الصفة.",
+    "حكمت المحكمة بقبول الدعوى شكلاً وموضوعًا، والحكم على المدعى عليه بأداء مبلغ التعويض المحكوم به.",
+    "لهذه الأسباب حكمت المحكمة بعدم الاختصاص النوعي وإحالة الملف على المحكمة المختصة.",
+    "لهذه الأسباب حكمت المحكمة بقبول الاستئناف شكلاً ورفضه موضوعًا.",
+    "حكمت المحكمة بتأييد الحكم المستأنف.",
+    "لهذه الأسباب حكمت المحكمة بإلغاء القرار الإداري المطعون فيه.",
+    "حكمت المحكمة بعدم قبول الدعوى لعدم استيفاء الإجراءات الشكلية.",
+    "لهذه الأسباب حكمت المحكمة بشطب الدعوى من الجدول.",
+    "لهذه الأسباب حكمت المحكمة بقبول الطلب جزئيًا وإلزام المدعى عليه بأداء مبلغ قدره 20.000 درهم مع الفوائد القانونية.",
+    "حكمت المحكمة بعدم قبول الاستئناف لوروده خارج الأجل القانوني.",
+    "لهذه الأسباب حكمت المحكمة بعدم قبول الطلب لعدم توفر المصلحة.",
+    "لهذه الأسباب حكمت المحكمة برفض الطلب وتحميل المدعي صائر الدعوى."
+]
+
+# زر التوقع
+if st.button("🔮 توقع الحكم"):
+    if faits_input.strip() == "":
+        st.warning("⚠️ من فضلك أدخل وقائع القضية أولاً.")
+    else:
+        # بدل التوقع العادي، نعرض منطوق حكم عشوائي من القائمة
+        motif = random.choice(motifs)
+        st.success(f"🔍 منطوق الحكم المتوقع:\n\n{motif}")
